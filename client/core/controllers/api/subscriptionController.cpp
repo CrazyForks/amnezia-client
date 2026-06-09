@@ -98,6 +98,9 @@ QJsonObject SubscriptionController::GatewayRequestData::toJsonObject() const
     if (!authData.isEmpty()) {
         obj[apiDefs::key::authData] = authData;
     }
+    if (!transactionId.isEmpty()) {
+        obj[apiDefs::key::transactionId] = transactionId;
+    }
     return obj;
 }
 
@@ -219,6 +222,26 @@ ErrorCode SubscriptionController::executeRequest(const QString &endpoint, const 
     return gatewayController.post(endpoint, apiPayload, responseBody);
 }
 
+ErrorCode SubscriptionController::getSubscriptionInfo(const QString &userCountryCode, const QString &serviceType,
+                                                       const QString &serviceProtocol, const QString &purchaseToken,
+                                                       QByteArray &responseBody)
+{
+    GatewayRequestData gatewayRequestData { QSysInfo::productType(),
+                                            QString(APP_VERSION),
+                                            m_appSettingsRepository->getAppLanguage().name().split("_").first(),
+                                            m_appSettingsRepository->getInstallationUuid(true),
+                                            userCountryCode,
+                                            "",
+                                            serviceType,
+                                            serviceProtocol,
+                                            QJsonObject(),
+                                            purchaseToken };
+
+    QJsonObject apiPayload = gatewayRequestData.toJsonObject();
+    qWarning() << "[Billing][getSubscriptionInfo] request:" << QJsonDocument(apiPayload).toJson(QJsonDocument::Compact);
+    return executeRequest(QString("%1v1/getsubscriptioninfo"), apiPayload, responseBody, false);
+}
+
 ErrorCode SubscriptionController::importServiceFromGateway(const QString &userCountryCode, const QString &serviceType,
                                                             const QString &serviceProtocol, const ProtocolData &protocolData,
                                                             CaptchaInfo &captchaInfo)
@@ -333,7 +356,7 @@ ErrorCode SubscriptionController::importTrialFromGateway(const QString &userCoun
 ErrorCode SubscriptionController::importServiceFromMarket(const QString &userCountryCode, const QString &serviceType,
                                                             const QString &serviceProtocol, const ProtocolData &protocolData,
                                                             const QString &transactionId, bool isTestPurchase,
-                                                            int *duplicateServerIndex)
+                                                            int *duplicateServerIndex, const QString &endpoint)
 {
     GatewayRequestData gatewayRequestData { QSysInfo::productType(),
                                             QString(APP_VERSION),
@@ -343,14 +366,14 @@ ErrorCode SubscriptionController::importServiceFromMarket(const QString &userCou
                                             "",
                                             serviceType,
                                             serviceProtocol,
-                                            QJsonObject() };
+                                            QJsonObject(),
+                                            transactionId};
 
     QJsonObject apiPayload = gatewayRequestData.toJsonObject();
     appendProtocolDataToApiPayload(serviceProtocol, protocolData, apiPayload);
-    apiPayload[apiDefs::key::transactionId] = transactionId;
 
     QByteArray responseBody;
-    ErrorCode errorCode = executeRequest(QString("%1v1/subscriptions"), apiPayload, responseBody, isTestPurchase);
+    ErrorCode errorCode = executeRequest(QString("%1") + endpoint, apiPayload, responseBody, isTestPurchase);
     if (errorCode != ErrorCode::NoError) {
         return errorCode;
     }
@@ -876,23 +899,9 @@ ErrorCode SubscriptionController::processPlayMarketPurchase(const QString &userC
     }
 
     // First call: determine if this is a test purchase
-    GatewayRequestData checkRequestData { QSysInfo::productType(),
-                                          QString(APP_VERSION),
-                                          m_appSettingsRepository->getAppLanguage().name().split("_").first(),
-                                          m_appSettingsRepository->getInstallationUuid(true),
-                                          userCountryCode,
-                                          "",
-                                          serviceType,
-                                          serviceProtocol,
-                                          QJsonObject() };
-
-    QJsonObject checkPayload = checkRequestData.toJsonObject();
-    checkPayload[apiDefs::key::transactionId] = purchaseToken;
-
     QByteArray checkResponse;
-    qWarning() << "[Billing][processPlayMarketPurchase] v1/subscriptions request:" << QJsonDocument(checkPayload).toJson(QJsonDocument::Compact);
-    ErrorCode checkError = executeRequest(QString("%1v1/subscriptions"), checkPayload, checkResponse, false);
-    qWarning() << "[Billing][processPlayMarketPurchase] v1/subscriptions errorCode:" << static_cast<int>(checkError) << "response:" << checkResponse;
+    ErrorCode checkError = getSubscriptionInfo(userCountryCode, serviceType, serviceProtocol, purchaseToken, checkResponse);
+    qWarning() << "[Billing][processPlayMarketPurchase] getSubscriptionInfo errorCode:" << static_cast<int>(checkError) << "response:" << checkResponse;
     if (checkError != ErrorCode::NoError) {
         qWarning().noquote() << "[Billing] Initial subscriptions check failed:" << static_cast<int>(checkError);
         return checkError;
@@ -1074,22 +1083,9 @@ SubscriptionController::PlayMarketRestoreResult SubscriptionController::processP
             }
         }
 
-        GatewayRequestData checkRequestData { QSysInfo::productType(),
-                                              QString(APP_VERSION),
-                                              m_appSettingsRepository->getAppLanguage().name().split("_").first(),
-                                              m_appSettingsRepository->getInstallationUuid(true),
-                                              userCountryCode,
-                                              "",
-                                              serviceType,
-                                              serviceProtocol,
-                                              QJsonObject() };
-        QJsonObject checkPayload = checkRequestData.toJsonObject();
-        checkPayload[apiDefs::key::transactionId] = purchaseToken;
-
         QByteArray checkResponse;
-        qWarning() << "[Billing][processPlayMarketRestore] v1/subscriptions request:" << QJsonDocument(checkPayload).toJson(QJsonDocument::Compact);
-        ErrorCode checkError = executeRequest(QString("%1v1/subscriptions"), checkPayload, checkResponse, false);
-        qWarning() << "[Billing][processPlayMarketRestore] v1/subscriptions errorCode:" << static_cast<int>(checkError) << "response:" << checkResponse;
+        ErrorCode checkError = getSubscriptionInfo(userCountryCode, serviceType, serviceProtocol, purchaseToken, checkResponse);
+        qWarning() << "[Billing][processPlayMarketRestore] getSubscriptionInfo errorCode:" << static_cast<int>(checkError) << "response:" << checkResponse;
         if (checkError != ErrorCode::NoError) {
             qWarning().noquote() << "[Billing] Initial subscriptions check failed:" << static_cast<int>(checkError);
             result.errorCode = checkError;
@@ -1104,7 +1100,8 @@ SubscriptionController::PlayMarketRestoreResult SubscriptionController::processP
         int currentDuplicateServerIndex = -1;
         ErrorCode errorCode = importServiceFromMarket(userCountryCode, serviceType, serviceProtocol, protocolData,
                                                         purchaseToken, isTestPurchase,
-                                                        &currentDuplicateServerIndex);
+                                                        &currentDuplicateServerIndex,
+                                                        QStringLiteral("v1/subscription/restore"));
 
         if (errorCode == ErrorCode::ApiConfigAlreadyAdded) {
             result.duplicateConfigAlreadyPresent = true;
