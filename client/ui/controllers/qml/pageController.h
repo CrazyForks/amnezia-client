@@ -52,6 +52,8 @@ namespace PageLoader
         PageServiceTorWebsiteSettings,
         PageServiceDnsSettings,
         PageServiceSocksProxySettings,
+        PageServiceMtProxySettings,
+        PageServiceTelemtSettings,
 
         PageSetupWizardStart,
         PageSetupWizardCredentials,
@@ -82,7 +84,15 @@ namespace PageLoader
         PageSetupWizardApiPremiumInfo,
         PageSetupWizardApiTrialEmail,
 
-        PageDevMenu
+        PageDevMenu,
+
+        PageProtocolXraySnapshots,
+        PageProtocolXrayTransportSettings,
+        PageProtocolXrayXmuxSettings,
+        PageProtocolXrayXPaddingSettings,
+        PageProtocolXrayFlowSettings,
+        PageProtocolXraySecuritySettings,
+        PageProtocolXrayXPaddingBytesSettings,
     };
     Q_ENUM_NS(PageEnum)
 

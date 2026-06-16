@@ -2,9 +2,8 @@
 #define NATIVESERVERCONFIG_H
 
 #include <QJsonObject>
-#include <QJsonArray>
 #include <QMap>
-#include <optional>
+#include <QPair>
 
 #include "core/utils/containerEnum.h"
 #include "core/utils/containers/containerUtils.h"
@@ -27,6 +26,11 @@ struct NativeServerConfig {
     
     bool hasContainers() const;
     ContainerConfig containerConfig(DockerContainer container) const;
+
+    void updateContainerConfig(DockerContainer container, const ContainerConfig &config);
+
+    QPair<QString, QString> getDnsPair(const QString &primaryDns, const QString &secondaryDns) const;
+
     QJsonObject toJson() const;
     static NativeServerConfig fromJson(const QJsonObject& json);
 };

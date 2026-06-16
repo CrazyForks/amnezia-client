@@ -86,6 +86,9 @@ void CoreController::initModels()
     m_xrayConfigModel = new XrayConfigModel(this);
     setQmlContextProperty("XrayConfigModel", m_xrayConfigModel);
 
+    m_xrayConfigSnapshotsModel = new XrayConfigSnapshotsModel(m_appSettingsRepository, m_xrayConfigModel, this);
+    setQmlContextProperty("XrayConfigSnapshotsModel", m_xrayConfigSnapshotsModel);
+
     m_torConfigModel = new TorConfigModel(this);
     setQmlContextProperty("TorConfigModel", m_torConfigModel);
 
@@ -99,6 +102,12 @@ void CoreController::initModels()
 
     m_socks5ConfigModel = new Socks5ProxyConfigModel(this);
     setQmlContextProperty("Socks5ProxyConfigModel", m_socks5ConfigModel);
+
+    m_mtProxyConfigModel = new MtProxyConfigModel(this);
+    setQmlContextProperty("MtProxyConfigModel", m_mtProxyConfigModel);
+
+    m_telemtConfigModel = new TelemtConfigModel(this);
+    setQmlContextProperty("TelemtConfigModel", m_telemtConfigModel);
 
     m_clientManagementModel = new ClientManagementModel(this);
     setQmlContextProperty("ClientManagementModel", m_clientManagementModel);
@@ -169,7 +178,8 @@ void CoreController::initControllers()
 #ifdef Q_OS_WINDOWS
                                                      m_ikev2ConfigModel,
 #endif
-                                                     m_sftpConfigModel, m_socks5ConfigModel, this);
+                                                     m_sftpConfigModel, m_socks5ConfigModel, m_mtProxyConfigModel, m_telemtConfigModel,
+                                                     m_connectionController, this);
     setQmlContextProperty("InstallController", m_installUiController);
 
     m_importController = new ImportUiController(m_importCoreController, this);
@@ -181,7 +191,7 @@ void CoreController::initControllers()
     m_languageUiController = new LanguageUiController(m_settingsController, m_languageModel, this);
     setQmlContextProperty("LanguageUiController", m_languageUiController);
 
-    m_settingsUiController = new SettingsUiController(m_settingsController, m_serversController, m_languageUiController, this);
+    m_settingsUiController = new SettingsUiController(m_settingsController, m_serversController, this);
     setQmlContextProperty("SettingsController", m_settingsUiController);
 
     m_pageController = new PageController(m_serversController, m_settingsController, this);
@@ -202,12 +212,17 @@ void CoreController::initControllers()
     m_systemController = new SystemController(this);
     setQmlContextProperty("SystemController", m_systemController);
 
+    m_networkReachabilityController = new NetworkReachabilityController(this);
+    setQmlContextProperty("NetworkReachabilityController", m_networkReachabilityController);
+    setQmlContextProperty("NetworkReachability", m_networkReachabilityController);
+
     m_servicesCatalogUiController = new ServicesCatalogUiController(m_servicesCatalogController, m_apiServicesModel, this);
     setQmlContextProperty("ServicesCatalogUiController", m_servicesCatalogUiController);
 
     m_subscriptionUiController = new SubscriptionUiController(m_serversController, m_apiServicesModel, m_servicesCatalogController, m_subscriptionController,
                                                               m_apiSubscriptionPlansModel, m_apiBenefitsModel, m_apiAccountInfoModel,
-                                                              m_apiCountryModel, m_apiDevicesModel, m_settingsController, this);
+                                                              m_apiCountryModel, m_apiDevicesModel, m_settingsController,
+                                                              m_connectionController, this);
     setQmlContextProperty("SubscriptionUiController", m_subscriptionUiController);
 
     m_apiNewsUiController = new ApiNewsUiController(m_newsModel, m_newsController, this);
@@ -328,9 +343,6 @@ void CoreController::openConnectionByIndex(int serverIndex)
         m_serversUiController ? m_serversUiController->getServerId(serverIndex) : QString();
     if (serverId.isEmpty()) {
         return;
-    }
-    if (m_serversModel) {
-        m_serversModel->setProcessedServerIndex(serverIndex);
     }
     if (m_serversController) {
         m_serversController->setDefaultServer(serverId);
