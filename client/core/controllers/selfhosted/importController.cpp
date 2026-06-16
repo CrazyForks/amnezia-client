@@ -502,7 +502,7 @@ ImportController::ImportResult ImportController::importLink(const QUrl &url)
         serverConfig.insert(it.key(), it.value());
     }
 
-    serverConfig.insert(configKey::description, m_appSettingsRepository->nextAvailableServerName());
+    serverConfig.insert(configKey::description, m_serversRepository->nextAvailableServerName());
     serverConfig[configKey::xraySubscriptionLink] = url.toString();
     serverConfig[configKey::xraySubscriptionConfig] = configStrings;
     serverConfig[configKey::xraySubscriptionConfigName] = configNames;

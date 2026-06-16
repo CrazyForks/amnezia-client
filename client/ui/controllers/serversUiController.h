@@ -28,7 +28,7 @@ class ServersUiController : public QObject
     Q_PROPERTY(bool isDefaultServerDefaultContainerHasSplitTunneling READ isDefaultServerDefaultContainerHasSplitTunneling NOTIFY defaultServerIdChanged)
     Q_PROPERTY(bool isDefaultServerFromApi READ isDefaultServerFromApi NOTIFY defaultServerIdChanged)
     
-    Q_PROPERTY(bool isDefaultServerContainXRayConfigs READ isDefaultServerContainXRayConfigs NOTIFY defaultServerIndexChanged)
+    Q_PROPERTY(bool isDefaultServerContainXRayConfigs READ isDefaultServerContainXRayConfigs NOTIFY defaultServerIdChanged)
 
     Q_PROPERTY(QString processedServerId READ getProcessedServerId WRITE setProcessedServerId NOTIFY processedServerIdChanged)
     Q_PROPERTY(int processedContainerIndex READ getProcessedContainerIndex WRITE setProcessedContainerIndex NOTIFY processedContainerIndexChanged)
@@ -87,6 +87,8 @@ public slots:
     bool isServerRenewalAvailable(const QString &serverId) const;
     bool isServerSubscriptionExpired(const QString &serverId) const;
     bool isServerSubscriptionExpiringSoon(const QString &serverId) const;
+
+    bool isServerContainXRayConfigs(const QString &serverId) const;
     
     QString getProcessedServerId() const;
     void setProcessedServerId(const QString &serverId);

@@ -359,7 +359,7 @@ PageType {
 
                                     PageController.goToPage(PageEnum.PageSettingsApiServerInfo)
                                 }
-                            } else if (ServersModel.getProcessedServerData("isXRayConfigSelectionAvailable")) {
+                            } else if (ServersUiController.isServerContainXRayConfigs(ServersUiController.processedServerId)) {
                                     PageController.goToPage(PageEnum.PageSettingsXRayAvailableConfigs)
                             } else {
                                 PageController.goToPage(PageEnum.PageSettingsServerInfo)

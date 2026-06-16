@@ -343,6 +343,11 @@ bool ServersUiController::isServerSubscriptionExpiringSoon(const QString &server
     return serverDescriptionById(serverId).isSubscriptionExpiringSoon;
 }
 
+bool ServersUiController::isServerContainXRayConfigs(const QString &serverId) const
+{
+    return serverDescriptionById(serverId).isXRaySubscription;
+}
+
 int ServersUiController::getProcessedContainerIndex() const
 {
     return m_processedContainerIndex;
