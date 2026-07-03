@@ -239,7 +239,7 @@ ErrorCode SubscriptionController::getSubscriptionInfo(const QString &userCountry
 
     QJsonObject apiPayload = gatewayRequestData.toJsonObject();
     qWarning() << "[Billing][getSubscriptionInfo] request:" << QJsonDocument(apiPayload).toJson(QJsonDocument::Compact);
-    return executeRequest(QString("%1v1/getsubscriptioninfo"), apiPayload, responseBody, false);
+    return executeRequest(QString("%1v1/get_subscription_info"), apiPayload, responseBody, false);
 }
 
 ErrorCode SubscriptionController::importServiceFromGateway(const QString &userCountryCode, const QString &serviceType,
@@ -813,7 +813,8 @@ ErrorCode SubscriptionController::processAppStorePurchase(const QString &userCou
 
     ProtocolData protocolData = generateProtocolData(serviceProtocol);
     return importServiceFromMarket(userCountryCode, serviceType, serviceProtocol, protocolData,
-                                     originalTransactionId, isTestPurchase, duplicateServerIndex);
+                                     originalTransactionId, isTestPurchase, duplicateServerIndex,
+                                     QStringLiteral("v1/subscriptions"));
 #else
     Q_UNUSED(userCountryCode);
     Q_UNUSED(serviceType);
@@ -914,7 +915,8 @@ ErrorCode SubscriptionController::processPlayMarketPurchase(const QString &userC
     // Second call: import service with correct isTestPurchase flag
     ProtocolData protocolData = generateProtocolData(serviceProtocol);
     return importServiceFromMarket(userCountryCode, serviceType, serviceProtocol, protocolData,
-                                     purchaseToken, isTestPurchase, duplicateServerIndex);
+                                     purchaseToken, isTestPurchase, duplicateServerIndex,
+                                     QStringLiteral("v1/subscriptions"));
 #else
     Q_UNUSED(userCountryCode);
     Q_UNUSED(serviceType);
@@ -981,7 +983,8 @@ SubscriptionController::AppStoreRestoreResult SubscriptionController::processApp
         int currentDuplicateServerIndex = -1;
         ErrorCode errorCode = importServiceFromMarket(userCountryCode, serviceType, serviceProtocol, protocolData,
                                                         originalTransactionId, isTestPurchase,
-                                                        &currentDuplicateServerIndex);
+                                                        &currentDuplicateServerIndex,
+                                                        QStringLiteral("v1/subscriptions/restore"));
 
         if (errorCode == ErrorCode::ApiConfigAlreadyAdded) {
             result.duplicateConfigAlreadyPresent = true;
@@ -1101,7 +1104,7 @@ SubscriptionController::PlayMarketRestoreResult SubscriptionController::processP
         ErrorCode errorCode = importServiceFromMarket(userCountryCode, serviceType, serviceProtocol, protocolData,
                                                         purchaseToken, isTestPurchase,
                                                         &currentDuplicateServerIndex,
-                                                        QStringLiteral("v1/subscription/restore"));
+                                                        QStringLiteral("v1/subscriptions/restore"));
 
         if (errorCode == ErrorCode::ApiConfigAlreadyAdded) {
             result.duplicateConfigAlreadyPresent = true;
