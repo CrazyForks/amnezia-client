@@ -127,7 +127,7 @@ void SubscriptionController::appendProtocolDataToApiPayload(const QString &proto
     }
 }
 
-ErrorCode SubscriptionController::extractServerConfigJsonFromResponse(const QByteArray &apiResponseBody, const QString &protocol, 
+ErrorCode SubscriptionController::extractServerConfigJsonFromResponse(const QByteArray &apiResponseBody, const QString &protocol,
                                                                         const ProtocolData &protocolData, QJsonObject &serverConfigJson)
 {
     QString data = QJsonDocument::fromJson(apiResponseBody).object().value(configKey::config).toString();
@@ -192,16 +192,16 @@ ErrorCode SubscriptionController::extractServerConfigJsonFromResponse(const QByt
     return ErrorCode::NoError;
 }
 
-void SubscriptionController::updateApiConfigInJson(QJsonObject &serverConfigJson, const QString &serviceType, 
+void SubscriptionController::updateApiConfigInJson(QJsonObject &serverConfigJson, const QString &serviceType,
                                                     const QString &serviceProtocol, const QString &userCountryCode,
                                                     const QByteArray &apiResponseBody)
 {
     QJsonObject apiConfig = serverConfigJson.value(apiDefs::key::apiConfig).toObject();
-    
+
     apiConfig[apiDefs::key::serviceType] = serviceType;
     apiConfig[apiDefs::key::serviceProtocol] = serviceProtocol;
     apiConfig[apiDefs::key::userCountryCode] = userCountryCode;
-    
+
     if (serverConfigJson.value(configKey::configVersion).toInt() == serverConfigUtils::ConfigSource::AmneziaGateway) {
         QJsonObject responseObj = QJsonDocument::fromJson(apiResponseBody).object();
         if (responseObj.contains(apiDefs::key::supportedProtocols)) {
@@ -211,7 +211,7 @@ void SubscriptionController::updateApiConfigInJson(QJsonObject &serverConfigJson
             apiConfig.insert(apiDefs::key::serviceInfo, responseObj.value(apiDefs::key::serviceInfo).toObject());
         }
     }
-    
+
     serverConfigJson[apiDefs::key::apiConfig] = apiConfig;
 }
 
@@ -373,7 +373,9 @@ ErrorCode SubscriptionController::importServiceFromMarket(const QString &userCou
     appendProtocolDataToApiPayload(serviceProtocol, protocolData, apiPayload);
 
     QByteArray responseBody;
+    qWarning() << "[Billing][importServiceFromMarket] endpoint:" << endpoint << "isTestPurchase:" << isTestPurchase;
     ErrorCode errorCode = executeRequest(QString("%1") + endpoint, apiPayload, responseBody, isTestPurchase);
+    qWarning() << "[Billing][importServiceFromMarket] errorCode:" << static_cast<int>(errorCode) << "response:" << responseBody;
     if (errorCode != ErrorCode::NoError) {
         return errorCode;
     }
@@ -417,7 +419,7 @@ ErrorCode SubscriptionController::importServiceFromMarket(const QString &userCou
     QJsonObject configObject = QJsonDocument::fromJson(configString).object();
 
     quint16 crc = qChecksum(QJsonDocument(configObject).toJson());
-    
+
     if (configObject.value(configKey::configVersion).toInt() != serverConfigUtils::ConfigSource::AmneziaGateway) {
         return ErrorCode::InternalError;
     }
@@ -445,7 +447,7 @@ ErrorCode SubscriptionController::updateServiceFromGateway(const QString &server
     const bool isTestPurchase = apiV2->apiConfig.isTestPurchase;
     QString serviceProtocol = apiV2->serviceProtocol();
     ProtocolData protocolData = generateProtocolData(serviceProtocol);
-    
+
     QJsonObject authDataJson = apiV2->authData.toJson();
     GatewayRequestData gatewayRequestData { QSysInfo::productType(),
                                             QString(APP_VERSION),
@@ -481,24 +483,24 @@ ErrorCode SubscriptionController::updateServiceFromGateway(const QString &server
     if (errorCode != ErrorCode::NoError) {
         return errorCode;
     }
-    
+
     updateApiConfigInJson(serverConfigJson, apiV2->apiConfig.serviceType, serviceProtocol, apiV2->apiConfig.userCountryCode, responseBody);
-    
+
     if (serverConfigJson.value(configKey::configVersion).toInt() != serverConfigUtils::ConfigSource::AmneziaGateway) {
         return ErrorCode::InternalError;
     }
 
     ApiV2ServerConfig newApiV2Config = ApiV2ServerConfig::fromJson(serverConfigJson);
     ApiV2ServerConfig* newApiV2 = &newApiV2Config;
-    
+
     newApiV2->apiConfig.vpnKey = apiV2->apiConfig.vpnKey;
     newApiV2->apiConfig.isTestPurchase = apiV2->apiConfig.isTestPurchase;
     newApiV2->apiConfig.isInAppPurchase = apiV2->apiConfig.isInAppPurchase;
     newApiV2->apiConfig.subscriptionExpiredByServer = false;
-    
+
     newApiV2->authData = apiV2->authData;
     newApiV2->crc = apiV2->crc;
-    
+
     if (apiV2->nameOverriddenByUser) {
         newApiV2->name = apiV2->name;
         newApiV2->displayName = apiV2->displayName;
@@ -516,7 +518,7 @@ ErrorCode SubscriptionController::deactivateDevice(const QString &serverId)
     if (!apiV2.has_value()) {
         return ErrorCode::NoError;
     }
-    
+
     if (!apiV2->isPremium() && !apiV2->isExternalPremium()) {
         return ErrorCode::NoError;
     }
@@ -553,7 +555,7 @@ ErrorCode SubscriptionController::deactivateExternalDevice(const QString &server
     if (!apiV2.has_value()) {
         return ErrorCode::NoError;
     }
-    
+
     if (!apiV2->isPremium() && !apiV2->isExternalPremium()) {
         return ErrorCode::NoError;
     }
@@ -749,7 +751,7 @@ bool SubscriptionController::isApiKeyExpired(const QString &serverId) const
         return false;
     }
     const QString expiresAt = apiV2->apiConfig.publicKey.expiresAt;
-    
+
     if (expiresAt.isEmpty()) {
         return false;
     }
@@ -758,7 +760,7 @@ bool SubscriptionController::isApiKeyExpired(const QString &serverId) const
     if (expiresAtDateTime < QDateTime::currentDateTimeUtc()) {
         return true;
     }
-    
+
     return false;
 }
 
@@ -984,7 +986,7 @@ SubscriptionController::AppStoreRestoreResult SubscriptionController::processApp
         ErrorCode errorCode = importServiceFromMarket(userCountryCode, serviceType, serviceProtocol, protocolData,
                                                         originalTransactionId, isTestPurchase,
                                                         &currentDuplicateServerIndex,
-                                                        QStringLiteral("v1/subscriptions/restore"));
+                                                        QStringLiteral("v1/restore_subscription"));
 
         if (errorCode == ErrorCode::ApiConfigAlreadyAdded) {
             result.duplicateConfigAlreadyPresent = true;
@@ -1104,7 +1106,7 @@ SubscriptionController::PlayMarketRestoreResult SubscriptionController::processP
         ErrorCode errorCode = importServiceFromMarket(userCountryCode, serviceType, serviceProtocol, protocolData,
                                                         purchaseToken, isTestPurchase,
                                                         &currentDuplicateServerIndex,
-                                                        QStringLiteral("v1/subscriptions/restore"));
+                                                        QStringLiteral("v1/restore_subscription"));
 
         if (errorCode == ErrorCode::ApiConfigAlreadyAdded) {
             result.duplicateConfigAlreadyPresent = true;
@@ -1114,7 +1116,8 @@ SubscriptionController::PlayMarketRestoreResult SubscriptionController::processP
             qInfo().noquote() << "[Billing] Skipping purchase" << purchaseToken
                               << "because subscription config with the same vpn_key already exists";
         } else if (errorCode != ErrorCode::NoError) {
-            qWarning().noquote() << "[Billing] Failed to process restored subscription for purchaseToken =" << purchaseToken;
+            qWarning().noquote() << "[Billing] Failed to process restored subscription for purchaseToken =" << purchaseToken
+                                 << "errorCode =" << static_cast<int>(errorCode);
             result.errorCode = errorCode;
         } else {
             result.hasInstalledConfig = true;
