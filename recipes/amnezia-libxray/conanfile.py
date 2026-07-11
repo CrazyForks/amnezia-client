@@ -52,6 +52,11 @@ class AmneziaLibxray(ConanFile):
             '-ldflags="-w -s -buildid="',
             '-ldflags="-w -s -buildid= -extldflags=-Wl,-z,max-page-size=16384"',
         )
+        replace_in_file(self,
+            build_path,
+            "    rm -f go.mod\n    rm -f go.sum\n    go mod init github.com/amnezia-vpn/amnezia-libxray\n    go mod tidy",
+            "    go mod tidy",
+        )
 
     def build(self):
         self._patch_sources()
